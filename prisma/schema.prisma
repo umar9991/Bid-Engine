@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+/// A single tender / RFP / RFQ and its analysis results.
+model RFP {
+  id             String    @id @default(cuid())
+  title          String
+  filename       String
+  content        String    @db.Text
+  status         RFPStatus @default(UPLOADED)
+
+  // Extracted (NER / LLM)
+  requirements   Json?
+  criteria       Json?
+  deadline       DateTime?
+  budgetMin      Float?
+  budgetMax      Float?
+  domain         String?
+
+  // Analysis outputs
+  compliance     Json?
+  winProbability Int?
+  scoreBreakdown Json?
+  goNoGo         String?
+  draftResponse  String?   @db.Text
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+/// Company Capability Library - the RAG knowledge base.
+model Capability {
+  id            String  @id @default(cuid())
+  title         String
+  description   String  @db.Text
+  domain        String
+  certification String?
+  year          Int?
+  contractValue Float?
+  clientType    String?
+}
+
+/// Historical bid outcomes - feeds win-probability scoring.
+model BidOutcome {
+  id        String  @id @default(cuid())
+  domain    String
+  outcome   String  // "WON" | "LOST"
+  bidValue  Float?
+  evalScore Float?
+}
+
+enum RFPStatus {
+  UPLOADED
+  EXTRACTING
+  MATCHING
+  SCORING
+  COMPLETE
+  FAILED
+}
